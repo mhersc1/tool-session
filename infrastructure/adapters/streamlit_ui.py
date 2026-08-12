@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import traceback
-from application.ports.inbound import GenerateDocumentUseCase # Imports Inbound Port
+from application.ports.inbound import UISessionToolPort # Imports Inbound Port
 from domain.models import (
     SessionContext, 
     GeneralData, 
@@ -108,7 +108,7 @@ def adjust_temas_state():
             }
 
 def render_ui(
-    use_case: GenerateDocumentUseCase,
+    use_case: UISessionToolPort,
     initial_context: SessionContext | None = None,
 ):
 
@@ -416,10 +416,13 @@ def render_ui(
             )
             
             # 6. Pass this structured context safely through your Inbound Port Use Case
-            use_case.execute(context, output_path="sesion_de_aprendizaje.docx")
+            docx_buffer = use_case.execute(context)
+
+            # 7. Guardar los bytes en el estado de la sesión de Streamlit
+            st.session_state["docx_bytes"] = docx_buffer.getvalue()
             print("Contexto: ")
             print(context)
-            st.success("🎉 ¡Documento generado y guardado con éxito!")
+            st.success("🎉 ¡Documento generado con éxito en memoria! Haz clic abajo para descargarlo.")
         except Exception as e:
             # Captura el stacktrace completo como una cadena de texto
             error_traceback = traceback.format_exc()
@@ -427,3 +430,13 @@ def render_ui(
             # Muestra el mensaje amigable y el rastreo detallado
             st.error(f"Ocurrió un error en la generación: {e}")
             st.code(error_traceback, language="python")
+
+    # --- BOTÓN DE DESCARGA DIRECTA ---
+    if "docx_bytes" in st.session_state and st.session_state["docx_bytes"]:
+        st.download_button(
+            label="⬇️ Descargar Documento Word (.docx)",
+            data=st.session_state["docx_bytes"],
+            file_name="sesion_de_aprendizaje.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )

@@ -5,7 +5,7 @@ from domain.models import SessionContext
 class DocumentGeneratorPort(ABC):
     """Outbound port to handle final file creation."""
     @abstractmethod
-    def generate(self, context: SessionContext, template_path: str, output_path: str) -> None:
+    def generate(self, context: SessionContext, template_path: str) -> bytes:
         pass
 
 class FormPreloadAgentPort(ABC):

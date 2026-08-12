@@ -1,5 +1,7 @@
 # infrastructure/adapters/docx_generator.py
-from docxtpl import DocxTemplate
+import io  # <--- Agregar esta importación
+import re  # <--- Import regex module
+from docxtpl import DocxTemplate, RichText
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
@@ -10,7 +12,7 @@ import copy
 import roman
 
 class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
-    def generate(self, context: SessionContext, template_path: str, output_path: str) -> None:
+    def generate(self, context: SessionContext, template_path: str) -> bytes:
         
         # --- PASO 1: Renderizar datos fijos ---
         doc_tpl = DocxTemplate(template_path)
@@ -27,10 +29,14 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
         }
 
         doc_tpl.render(scalar_payload)
-        doc_tpl.save(output_path)
+
+        # Guardamos la primera pasada en un buffer en memoria
+        intermediate_buffer = io.BytesIO()
+        doc_tpl.save(intermediate_buffer)
+        intermediate_buffer.seek(0)        
 
         # --- PASO 2: Rellenar las tablas manteniendo su estilo uniforme ---
-        doc = Document(output_path)
+        doc = Document(intermediate_buffer)
 
         for table in doc.tables:
             if len(table.rows) >= 2:
@@ -106,17 +112,38 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
                     tr_element = base_row._tr
                     tr_element.getparent().remove(tr_element)
 
-        # Guardamos el archivo final perfectamente simétrico
-        doc.save(output_path)
+        # --- PASO 3: Guardar el resultado en el buffer final en memoria ---
+        final_buffer = io.BytesIO()
+        doc.save(final_buffer)
+        final_buffer.seek(0)
+
+        print("buffer", final_buffer)
+        
+        return final_buffer
+
+    # --- HELPER TO PARSE MARKDOWN BOLD (**text**) ---
+    def _append_formatted_text(self, paragraph, text: str) -> None:
+        """Splits markdown **bold** text and applies run.bold = True where necessary."""
+        # Split text by **...** tags
+        parts = re.split(r'\*\*(.*?)\*\*', text)
+        
+        for idx, part in enumerate(parts):
+            if not part:
+                continue
+            run = paragraph.add_run(part)
+            run.font.name = 'Arial'
+            run.font.size = Pt(12)
+            
+            # Odd index positions (1, 3, 5...) correspond to the captured content inside **
+            if idx % 2 == 1:
+                run.bold = True    
 
     def _set_cell_text(self, cell, text: str) -> None:
         """Helper to write plain text to a cell with explicit Arial 12pt formatting."""
         p = cell.paragraphs[0]
         p.text = ""
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Explicitly set left alignment
-        run = p.add_run(text)
-        run.font.name = 'Arial'
-        run.font.size = Pt(12)
+        self._append_formatted_text(p, text)
 
     def _set_cell_bullets(self, cell, items: Union[List[str], str]) -> None:
         """Helper to format bullet points inside table cells with explicit Arial 12pt."""
@@ -136,12 +163,10 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
         p0.alignment = WD_ALIGN_PARAGRAPH.LEFT
         try:
             p0.style = 'List Bullet'
-            run = p0.add_run(item_list[0])
+            self._append_formatted_text(p0, item_list[0])
         except KeyError:
-            run = p0.add_run(f"• {item_list[0]}")
-        
-        run.font.name = 'Arial'
-        run.font.size = Pt(12)
+            p0.add_run("• ")
+            self._append_formatted_text(p0, item_list[0])
 
         # Add remaining paragraphs
         for item in item_list[1:]:
@@ -156,6 +181,42 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
             run.font.name = 'Arial'
             run.font.size = Pt(12)
 
+    # --- HELPER TO PARSE MARKDOWN BOLD FOR PYTHON-DOCX PARAGRAPHS ---
+    def _append_formatted_text(self, paragraph, text: str) -> None:
+        """Splits markdown **bold** text and applies run.bold = True where necessary."""
+        parts = re.split(r'\*\*(.*?)\*\*', str(text))
+        
+        for idx, part in enumerate(parts):
+            if not part:
+                continue
+            run = paragraph.add_run(part)
+            run.font.name = 'Arial'
+            run.font.size = Pt(12)
+            
+            if idx % 2 == 1:
+                run.bold = True
+
+    # --- HELPER TO CONVERT MARKDOWN BOLD TO DOCXTPL RICHTEXT ---
+    def _to_rich_text(self, text: str) -> RichText:
+        """Converts Markdown **bold** text into a docxtpl RichText object."""
+        if not text:
+            return RichText("")
+
+        rt = RichText()
+        parts = re.split(r'\*\*(.*?)\*\*', str(text))
+
+        for idx, part in enumerate(parts):
+                    if not part:
+                        continue
+                    
+                    # Odd indexes correspond to captured content inside **
+                    is_bold = (idx % 2 == 1)
+                    
+                    # size=24 corresponds to 12pt in Word XML half-points
+                    rt.add(part, font='Arial', size=24, bold=is_bold)
+
+        return rt            
+
     def getTopics(self, topics: List[TopicDetail]) -> List:
         temas = []
         for index, topic in enumerate(topics):
@@ -169,9 +230,9 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
                     "letra": letra,
                     "roman": letra_romana,
                     "titulo": topic.titulo,
-                    "inicio": topic.inicio,
+                    "inicio": self._to_rich_text(topic.inicio),
                     "cierre": topic.cierre,
-                    "tarea": topic.tarea,
+                    "tarea": self._to_rich_text(topic.tarea),
                     "subtemas": self.getSubTopics(topic.subtemas)
                 })
         return temas
@@ -183,6 +244,6 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
             subTemas.append({
                 "index": index + 1,
                 "subtema": subTopic.subtema,
-                "resumen": subTopic.resumen
+                "resumen": self._to_rich_text(subTopic.resumen)
             })
         return subTemas

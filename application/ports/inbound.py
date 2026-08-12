@@ -2,10 +2,10 @@
 from abc import ABC, abstractmethod
 from domain.models import SessionContext
 
-class GenerateDocumentUseCase(ABC):
+class UISessionToolPort(ABC):
     """Inbound port invoked by UI adapters."""
     @abstractmethod
-    def execute(self, context: SessionContext, output_path: str) -> None:
+    def execute(self, context: SessionContext) -> bytes:
         pass
 
     @abstractmethod
