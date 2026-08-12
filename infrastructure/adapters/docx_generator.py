@@ -121,6 +121,14 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
         
         return final_buffer
 
+    # --- SANITIZADOR DE CARACTERES DE CONTROL XML ---
+    def _clean_text(self, text: str) -> str:
+        """Remueve caracteres de control incompatibles con XML 1.0 (ej. NULL bytes)."""
+        if not text:
+            return ""
+        # Elimina caracteres ASCII 0-31 excepto \t (\x09), \n (\x0A), \r (\x0D)
+        return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F]', '', str(text))    
+
     # --- HELPER TO PARSE MARKDOWN BOLD (**text**) ---
     def _append_formatted_text(self, paragraph, text: str) -> None:
         """Splits markdown **bold** text and applies run.bold = True where necessary."""
@@ -184,7 +192,8 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
     # --- HELPER TO PARSE MARKDOWN BOLD FOR PYTHON-DOCX PARAGRAPHS ---
     def _append_formatted_text(self, paragraph, text: str) -> None:
         """Splits markdown **bold** text and applies run.bold = True where necessary."""
-        parts = re.split(r'\*\*(.*?)\*\*', str(text))
+        clean_input = self._clean_text(text)
+        parts = re.split(r'\*\*(.*?)\*\*', clean_input)
         
         for idx, part in enumerate(parts):
             if not part:
@@ -199,7 +208,8 @@ class DocxTemplateGeneratorAdapter(DocumentGeneratorPort):
     # --- HELPER TO CONVERT MARKDOWN BOLD TO DOCXTPL RICHTEXT ---
     def _to_rich_text(self, text: str) -> RichText:
         """Converts Markdown **bold** text into a docxtpl RichText object."""
-        if not text:
+        clean_input = self._clean_text(text)
+        if not clean_input:
             return RichText("")
 
         rt = RichText()
