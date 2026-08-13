@@ -22,7 +22,8 @@ Tu tarea es generar el contenido completo de una sesión de aprendizaje para un 
 a partir de los temas que te proporcione el usuario.
 
 Debes completar todos los campos del formulario de sesión:
-- proposito: Según lo definido en el documento pce.md escoger al menos una fila con una competencia, sus capacidades 
+- proposito: Si el área seleccionada por el usuario es "Educación Cívica" el documento a considerar es el pce-civica.md, caso contrario considerar el documento pce-ccss.md.
+  Ya teniendo seleccionado el documento, escoger al menos una fila con una competencia, sus capacidades 
   y desempeños los cuales tienen que estar alineados a los temas de la sesión y al nivel educativo especificados por el usuario. 
   Para la parte de desempeños, dar ejemplos claros y concisos tomando como referencia los desempeños y el nivel de grado definidos en el propio documento.
 - enfoques: De acuerdo a lo especificado en el documento cneb.md escoger al menos dos enfoques transversales 

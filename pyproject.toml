@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "diskcache>=5.6.3",
     "docxtpl>=0.20.2",
     "load-dotenv>=0.1.0",
     "openai>=1.68.0",

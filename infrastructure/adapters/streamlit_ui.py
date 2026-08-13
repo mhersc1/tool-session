@@ -130,9 +130,9 @@ def render_ui(
         col1, col2 = st.columns(2)
         with col1:
             colegio = st.text_input("Colegio", key="colegio")
-            area = st.selectbox("Área", options=["Historia", "Geografía", "Economía"], key="area")
-            nivel = st.selectbox("Nivel", options=["Primaria", "Secundaria"], key="nivel")
-            grado = st.selectbox("Grado", options=["1º", "2º", "3º", "4º", "5º", "6º"], key="grado")
+            area = st.selectbox("Área", options=["Historia", "Geografía", "Economía", "Educación Cívica"], key="area")
+            nivel = st.selectbox("Nivel", options=["Secundaria"], key="nivel")
+            grado = st.selectbox("Grado", options=["1º", "2º", "3º", "4º", "5º"], key="grado")
         with col2:
             seccion = st.text_input("Sección", key="seccion")
             docente = st.text_input("Docente", key="docente")
@@ -257,7 +257,7 @@ def render_ui(
             use_container_width=True,
             column_config={
                 "ENFOQUES TRANSVERSALES": st.column_config.TextColumn(
-                    "ENFOQUES TRANSVERSALES", disabled=True
+                    "ENFOQUES TRANSVERSALES"
                 ),
                 "ACCIONES OBSERVABLES": st.column_config.TextColumn("ACCIONES OBSERVABLES"),
             },
