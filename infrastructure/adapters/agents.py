@@ -123,7 +123,7 @@ def _to_domain(schema: SessionContextSchema) -> SessionContext:
 class FormPreloadAgentAdapter(FormPreloadAgentPort):
     def __init__(
         self,
-        model: str = "globant_dgx/GLM-4.6",#"gpt-4o-mini"
+        model: str = "globant_dgx/GLM-5.3-Flash",#"gpt-4o-mini"
         client: OpenAI | None = None,
     ) -> None:
         api_base = "https://api.clients.globant.com"
