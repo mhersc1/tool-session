@@ -123,17 +123,17 @@ def _to_domain(schema: SessionContextSchema) -> SessionContext:
 class FormPreloadAgentAdapter(FormPreloadAgentPort):
     def __init__(
         self,
-        model: str = "globant_dgx/GLM-5.3-Flash",#"gpt-4o-mini"
+        model: str = "gpt-4o-nano", #"globant_dgx/GLM-5.3-Flash"
         client: OpenAI | None = None,
     ) -> None:
-        api_base = "https://api.clients.globant.com"
-        api_key = os.getenv("GEAI_API_KEY")
+        #api_base = "https://api.clients.globant.com"
+        api_key = os.getenv("OPENAI_API_KEY")
         if client is None and not api_key:
             raise ValueError(
                 "OPENAI_API_KEY no está configurada. "
                 "Define la variable de entorno antes de usar el agente."
             )
-        self._client = client or OpenAI(api_key=api_key, base_url=api_base)
+        self._client = client or OpenAI(api_key=api_key) #, base_url=api_base)
         self._model = model
 
     def preload(self, prompt: str) -> SessionContext:
